@@ -1,0 +1,58 @@
+﻿@model ExpenseFlow.Application.Expenses.ExpenseDetails
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Expense details";
+    var culture = CultureInfo.GetCultureInfo("en-IN");
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>@Model.Title</h1>
+        <p class="text-muted">
+            @Model.Category ·
+            @Model.ExpenseDate.ToString("dd MMM yyyy", culture)
+        </p>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        Back to expenses
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <strong class="fs-3">
+                @Model.Amount.ToString("C2", culture)
+            </strong>
+            <span class="badge bg-primary">@Model.Status</span>
+        </div>
+        <p class="mb-0">@Model.Description</p>
+    </div>
+</div>
+
+<h2 class="h4 mb-3">Expense history</h2>
+<p class="small text-muted">All times are shown in UTC.</p>
+
+<div class="list-group">
+    @foreach (var entry in Model.History)
+    {
+        <div class="list-group-item p-3">
+            <div class="d-flex justify-content-between gap-3 flex-wrap">
+                <strong>@entry.Action</strong>
+                <time datetime="@entry.OccurredAtUtc.ToString("O")">
+                    @entry.OccurredAtUtc.ToString(
+                        "dd MMM yyyy HH:mm:ss 'UTC'", culture)
+                </time>
+            </div>
+
+            <div class="small text-muted mt-1">@entry.Actor</div>
+
+            @if (!string.IsNullOrWhiteSpace(entry.Note))
+            {
+                <p class="mb-0 mt-2">@entry.Note</p>
+            }
+        </div>
+    }
+</div>

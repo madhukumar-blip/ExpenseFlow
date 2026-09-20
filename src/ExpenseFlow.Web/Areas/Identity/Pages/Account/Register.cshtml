@@ -1,0 +1,92 @@
+﻿@page
+@model ExpenseFlow.Web.Areas.Identity.Pages.Account.RegisterModel
+
+@{
+    ViewData["Title"] = "Create account";
+}
+
+<div class="ef-auth-shell">
+    <partial name="_AuthBrand" />
+
+    <section class="ef-auth-form-panel" aria-labelledby="register-heading">
+        <div class="ef-auth-form-content">
+            <span class="ef-auth-kicker">GET STARTED</span>
+
+            <h1 id="register-heading">Your workspace awaits.</h1>
+
+            <p class="ef-auth-subtitle">
+                Create an account to submit and track your expenses.
+            </p>
+
+            <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+                <div asp-validation-summary="ModelOnly"
+                     class="ef-auth-errors"
+                     role="alert"></div>
+
+                <div class="ef-auth-field">
+                    <label asp-for="Input.Email"></label>
+
+                    <input asp-for="Input.Email"
+                           class="form-control"
+                           autocomplete="username"
+                           placeholder="you@company.com"
+                           aria-describedby="register-email-error" />
+
+                    <span asp-validation-for="Input.Email"
+                          id="register-email-error"></span>
+                </div>
+
+                <div class="ef-auth-field">
+                    <label asp-for="Input.Password"></label>
+
+                    <input asp-for="Input.Password"
+                           class="form-control"
+                           autocomplete="new-password"
+                           placeholder="Create a password"
+                           aria-describedby="password-hint register-password-error" />
+
+                    <p class="ef-field-hint" id="password-hint">
+                        At least 10 characters, including uppercase,
+                        lowercase, a number, and a symbol.
+                    </p>
+
+                    <span asp-validation-for="Input.Password"
+                          id="register-password-error"></span>
+                </div>
+
+                <div class="ef-auth-field">
+                    <label asp-for="Input.ConfirmPassword"></label>
+
+                    <input asp-for="Input.ConfirmPassword"
+                           class="form-control"
+                           autocomplete="new-password"
+                           placeholder="Re-enter your password"
+                           aria-describedby="confirm-password-error" />
+
+                    <span asp-validation-for="Input.ConfirmPassword"
+                          id="confirm-password-error"></span>
+                </div>
+
+                <button type="submit"
+                        class="btn btn-primary ef-auth-submit">
+                    Create account
+                    <span aria-hidden="true">→</span>
+                </button>
+            </form>
+
+            <div class="ef-auth-divider"></div>
+
+            <p class="ef-auth-switch">
+                Already have an account?
+                <a asp-page="./Login"
+                   asp-route-returnUrl="@Model.ReturnUrl">
+                    Sign in
+                </a>
+            </p>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

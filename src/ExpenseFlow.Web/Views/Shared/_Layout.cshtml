@@ -1,0 +1,118 @@
+﻿@{
+    var currentController =
+        ViewContext.RouteData.Values["controller"]?.ToString();
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>@ViewData["Title"] | ExpenseFlow</title>
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+    <link rel="stylesheet"
+          href="~/css/auth.css"
+          asp-append-version="true" />
+</head>
+
+<body>
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg navbar-light">
+            <div class="container">
+                <a class="navbar-brand"
+                   asp-area=""
+                   asp-controller="Dashboard"
+                   asp-action="Index">
+                    <span class="brand-mark" aria-hidden="true">EF</span>
+                    ExpenseFlow
+                </a>
+
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#mainNavigation"
+                        aria-controls="mainNavigation"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="mainNavigation">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(currentController == "Dashboard" ? "active" : "")"
+                                   asp-area=""
+                                   asp-controller="Dashboard"
+                                   asp-action="Index">
+                                    Dashboard
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link @(currentController == "Expenses" ? "active" : "")"
+                                   asp-area=""
+                                   asp-controller="Expenses"
+                                   asp-action="Index">
+                                    My expenses
+                                </a>
+                            </li>
+
+                            @if (User.IsInRole("Manager"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentController == "Approvals" ? "active" : "")"
+                                       asp-area=""
+                                       asp-controller="Approvals"
+                                       asp-action="Index">
+                                        Approvals
+                                    </a>
+                                </li>
+                            }
+
+                            @if (User.IsInRole("Finance"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentController == "Finance" ? "active" : "")"
+                                       asp-area=""
+                                       asp-controller="Finance"
+                                       asp-action="Index">
+                                        Reimbursements
+                                    </a>
+                                </li>
+                            }
+                        }
+                    </ul>
+
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container app-main">
+        @RenderBody()
+    </main>
+
+    <footer class="app-footer">
+        <div class="container d-flex justify-content-between flex-wrap gap-2">
+            <span>© @DateTime.UtcNow.Year ExpenseFlow</span>
+            <span>Expense management and approvals</span>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

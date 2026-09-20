@@ -1,0 +1,310 @@
+﻿@model ExpenseFlow.Web.Models.Expenses.ExpenseIndexViewModel
+@using System.Globalization
+@using ExpenseFlow.Domain.Enums
+
+@{
+    ViewData["Title"] = "My expenses";
+
+    var culture = CultureInfo.GetCultureInfo("en-IN");
+    var results = Model.Results;
+
+    var firstRecord = results.TotalCount == 0
+        ? 0
+        : (results.PageNumber - 1) * results.PageSize + 1;
+
+    var lastRecord = results.TotalCount == 0
+        ? 0
+        : firstRecord + results.Items.Count - 1;
+
+    string PageUrl(int pageNumber)
+    {
+        return Url.Action("Index", "Expenses", new
+        {
+            search = Model.Search,
+            status = Model.Status,
+            category = Model.Category,
+            from = Model.From?.ToString(
+                "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            to = Model.To?.ToString(
+                "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            page = pageNumber
+        }) ?? "#";
+    }
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+        <h1>My expenses</h1>
+        <p class="text-muted mb-0">
+            Find expenses and track their progress.
+        </p>
+    </div>
+
+    <a asp-action="Create" class="btn btn-primary">
+        Create expense
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success" role="status">
+        @success
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-warning" role="alert">
+        @error
+    </div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+        <form asp-controller="Expenses"
+              asp-action="Index"
+              method="get">
+
+            <div asp-validation-summary="All"
+                 class="text-danger"
+                 role="alert"></div>
+
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <label asp-for="Search" class="form-label">
+                        Search expenses
+                    </label>
+                    <input asp-for="Search"
+                           class="form-control"
+                           maxlength="100"
+                           placeholder="Title or description" />
+                </div>
+
+                <div class="col-sm-6 col-lg-4">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status"
+                            asp-items="Html.GetEnumSelectList<ExpenseStatus>()"
+                            class="form-select">
+                        <option value="">All statuses</option>
+                    </select>
+                </div>
+
+                <div class="col-sm-6 col-lg-4">
+                    <label asp-for="Category" class="form-label"></label>
+                    <select asp-for="Category"
+                            asp-items="Html.GetEnumSelectList<ExpenseCategory>()"
+                            class="form-select">
+                        <option value="">All categories</option>
+                    </select>
+                </div>
+
+                <div class="col-sm-6 col-lg-4">
+                    <label asp-for="From" class="form-label">
+                        Expense date from
+                    </label>
+                    <input asp-for="From"
+                           type="date"
+                           class="form-control" />
+                </div>
+
+                <div class="col-sm-6 col-lg-4">
+                    <label asp-for="To" class="form-label">
+                        Expense date to
+                    </label>
+                    <input asp-for="To"
+                           type="date"
+                           class="form-control" />
+                </div>
+
+                <div class="col-lg-4 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        Apply filters
+                    </button>
+
+                    <a asp-action="Index"
+                       class="btn btn-outline-secondary">
+                        Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (ViewData.ModelState.IsValid)
+{
+    @if (results.Items.Count == 0)
+    {
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <h2 class="h4">No expenses found</h2>
+                <p class="text-muted">
+                    Create an expense or adjust your filters.
+                </p>
+                <a asp-action="Create" class="btn btn-primary">
+                    Create expense
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <caption class="px-3">
+                        Showing @firstRecord–@lastRecord
+                        of @results.TotalCount expenses.
+                    </caption>
+
+                    <thead>
+                        <tr>
+                            <th scope="col">Title</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Expense date</th>
+                            <th scope="col" class="text-end">Amount</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var expense in results.Items)
+                        {
+                            var badgeClass = expense.Status switch
+                            {
+                                ExpenseStatus.Approved => "bg-success",
+                                ExpenseStatus.Reimbursed => "bg-success",
+                                ExpenseStatus.Rejected => "bg-danger",
+                                ExpenseStatus.Submitted => "bg-primary",
+                                _ => "bg-secondary"
+                            };
+
+                            <tr>
+                                <td class="fw-semibold">
+                                    <a asp-action="Details"
+                                       asp-route-id="@expense.Id">
+                                        @expense.Title
+                                    </a>
+                                </td>
+
+                                <td>@expense.Category</td>
+
+                                <td class="text-nowrap">
+                                    @expense.ExpenseDate.ToString(
+                                        "dd MMM yyyy", culture)
+                                </td>
+
+                                <td class="text-end text-nowrap">
+                                    @expense.Amount.ToString("C2", culture)
+                                </td>
+
+                                <td>
+                                    <span class="badge @badgeClass">
+                                        @expense.Status
+                                    </span>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        expense.RejectionReason))
+                                    {
+                                        <div class="small text-danger mt-2">
+                                            @expense.RejectionReason
+                                        </div>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (expense.Status == ExpenseStatus.Draft)
+                                    {
+                                        <form asp-action="Submit"
+                                              method="post">
+
+                                            <input type="hidden"
+                                                   name="id"
+                                                   value="@expense.Id" />
+
+                                            <input type="hidden"
+                                                   name="rowVersion"
+                                                   value="@Convert.ToBase64String(expense.RowVersion)" />
+
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-primary">
+                                                Submit
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted">
+                                            @(expense.Status == ExpenseStatus.Submitted
+                                                ? "Awaiting review"
+                                                : expense.Status == ExpenseStatus.Approved
+                                                    ? "Awaiting reimbursement"
+                                                    : "No action available")
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (results.TotalPages > 1)
+        {
+            <nav class="mt-4" aria-label="Expense pages">
+                <ul class="pagination flex-wrap">
+                    @if (results.HasPrevious)
+                    {
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="@PageUrl(results.PageNumber - 1)">
+                                Previous
+                            </a>
+                        </li>
+                    }
+
+                    @for (var number = Math.Max(1, results.PageNumber - 2);
+                          number <= Math.Min(
+                              results.TotalPages,
+                              results.PageNumber + 2);
+                          number++)
+                    {
+                        if (number == results.PageNumber)
+                        {
+                            <li class="page-item active">
+                                <span class="page-link" aria-current="page">
+                                    @number
+                                </span>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="@PageUrl(number)">
+                                    @number
+                                </a>
+                            </li>
+                        }
+                    }
+
+                    @if (results.HasNext)
+                    {
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="@PageUrl(results.PageNumber + 1)">
+                                Next
+                            </a>
+                        </li>
+                    }
+                </ul>
+
+                <p class="small text-muted">
+                    Page @results.PageNumber of @results.TotalPages
+                </p>
+            </nav>
+        }
+    }
+}

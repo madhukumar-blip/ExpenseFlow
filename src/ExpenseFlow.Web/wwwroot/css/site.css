@@ -1,0 +1,170 @@
+:root {
+    --ef-primary: #2455d6;
+    --ef-background: #f5f7fb;
+    --ef-text: #182338;
+    --ef-muted: #64748b;
+    --ef-border: #e2e8f0;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--ef-background);
+    color: var(--ef-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+a {
+    color: var(--ef-primary);
+}
+
+.app-header {
+    background: white;
+    border-bottom: 1px solid var(--ef-border);
+}
+
+    .app-header .navbar {
+        min-height: 76px;
+    }
+
+    .app-header .navbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: 28px;
+        font-size: 1.2rem;
+        font-weight: 750;
+        color: var(--ef-text);
+    }
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--ef-primary);
+    color: white;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.app-header .nav-link {
+    padding: .6rem .85rem !important;
+    border-radius: 8px;
+    font-size: .92rem;
+}
+
+    .app-header .nav-link.active {
+        color: var(--ef-primary);
+        background: #edf2ff;
+        font-weight: 600;
+    }
+
+.app-main {
+    flex: 1;
+    padding-top: 32px;
+    padding-bottom: 48px;
+}
+
+.app-footer {
+    padding: 20px 0;
+    background: white;
+    border-top: 1px solid var(--ef-border);
+    color: var(--ef-muted);
+    font-size: .85rem;
+}
+
+h1 {
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    font-weight: 700;
+    letter-spacing: -.035em;
+}
+
+.card {
+    border: 1px solid var(--ef-border);
+    border-radius: 14px;
+}
+
+.shadow-sm {
+    box-shadow: 0 3px 12px rgb(24 35 56 / 4%) !important;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: var(--ef-primary);
+    border-color: var(--ef-primary);
+}
+
+.form-control,
+.form-select {
+    border-color: #cbd5e1;
+    border-radius: 8px;
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--ef-primary);
+        box-shadow: 0 0 0 .2rem rgb(36 85 214 / 12%);
+    }
+
+.form-label {
+    font-size: .9rem;
+    font-weight: 600;
+}
+
+.table > :not(caption) > * > * {
+    padding: 15px 16px;
+    border-bottom-color: var(--ef-border);
+}
+
+.table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: .8rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.badge {
+    padding: .45em .7em;
+    border-radius: 6px;
+}
+
+.alert {
+    border-radius: 10px;
+}
+
+.validation-summary-valid {
+    display: none;
+}
+
+.field-validation-error,
+.validation-summary-errors {
+    color: #b42318;
+}
+
+.input-validation-error {
+    border-color: #b42318;
+}
+
+@media (max-width: 991px) {
+    .app-header .navbar-collapse {
+        padding-top: 15px;
+    }
+
+    .app-header .nav-link {
+        overflow-wrap: anywhere;
+    }
+}
