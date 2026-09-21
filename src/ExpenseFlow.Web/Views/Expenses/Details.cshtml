@@ -1,53 +1,227 @@
 ﻿@model ExpenseFlow.Application.Expenses.ExpenseDetails
 @using System.Globalization
+@using ExpenseFlow.Domain.Enums
 
 @{
     ViewData["Title"] = "Expense details";
     var culture = CultureInfo.GetCultureInfo("en-IN");
+
+    var badgeClass = Model.Status switch
+    {
+        ExpenseStatus.Approved => "bg-success",
+        ExpenseStatus.Reimbursed => "bg-success",
+        ExpenseStatus.Rejected => "bg-danger",
+        ExpenseStatus.Submitted => "bg-primary",
+        _ => "bg-secondary"
+    };
+
+    var receiptSize = Model.ReceiptSize.HasValue
+        ? $"{Model.ReceiptSize.Value / 1024d:N1} KB"
+        : null;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
-        <h1>@Model.Title</h1>
-        <p class="text-muted">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <h1 class="mb-0">@Model.Title</h1>
+            <span class="badge @badgeClass">@Model.Status</span>
+        </div>
+
+        <p class="text-muted mb-0">
             @Model.Category ·
             @Model.ExpenseDate.ToString("dd MMM yyyy", culture)
         </p>
     </div>
 
-    <a asp-action="Index" class="btn btn-outline-secondary">
-        Back to expenses
-    </a>
-</div>
+    <div class="d-flex gap-2">
+        @if (Model.Status == ExpenseStatus.Draft)
+        {
+            <a asp-action="Edit"
+               asp-route-id="@Model.Id"
+               class="btn btn-primary">
+                Edit expense
+            </a>
+        }
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <strong class="fs-3">
-                @Model.Amount.ToString("C2", culture)
-            </strong>
-            <span class="badge bg-primary">@Model.Status</span>
-        </div>
-        <p class="mb-0">@Model.Description</p>
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+            Back
+        </a>
     </div>
 </div>
 
-<h2 class="h4 mb-3">Expense history</h2>
-<p class="small text-muted">All times are shown in UTC.</p>
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success" role="status">
+        @success
+    </div>
+}
 
-<div class="list-group">
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-warning" role="alert">
+        @error
+    </div>
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-4">
+                <p class="text-muted small text-uppercase mb-1">
+                    Expense amount
+                </p>
+
+                <strong class="display-6">
+                    @Model.Amount.ToString("C2", culture)
+                </strong>
+
+                <hr />
+
+                <h2 class="h5">Business purpose</h2>
+                <p class="mb-0">@Model.Description</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <div>
+                        <h2 class="h5 mb-1">Receipt</h2>
+                        <p class="small text-muted mb-0">
+                            PDF, JPG, JPEG or PNG. Maximum 5 MB.
+                        </p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(
+                    Model.ReceiptOriginalFileName))
+                {
+                    <div class="border rounded p-3 mb-3">
+                        <div class="fw-semibold text-break">
+                            @Model.ReceiptOriginalFileName
+                        </div>
+
+                        <div class="small text-muted mt-1">
+                            @receiptSize · @Model.ReceiptContentType
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <a asp-action="PreviewReceipt"
+                           asp-route-id="@Model.Id"
+                           target="_blank"
+                           rel="noopener"
+                           class="btn btn-sm btn-outline-primary">
+                            Preview
+                        </a>
+
+                        <a asp-action="DownloadReceipt"
+                           asp-route-id="@Model.Id"
+                           class="btn btn-sm btn-outline-secondary">
+                            Download
+                        </a>
+
+                        @if (Model.Status == ExpenseStatus.Draft)
+                        {
+                            <form asp-action="RemoveReceipt"
+                                  method="post"
+                                  onsubmit="return confirm('Remove this receipt?');">
+
+                                <input type="hidden"
+                                       name="id"
+                                       value="@Model.Id" />
+
+                                <input type="hidden"
+                                       name="rowVersion"
+                                       value="@Convert.ToBase64String(Model.RowVersion)" />
+
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger">
+                                    Remove
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="border rounded p-3 text-muted mb-3">
+                        No receipt attached.
+                    </div>
+                }
+
+                @if (Model.Status == ExpenseStatus.Draft)
+                {
+                    <form asp-action="UploadReceipt"
+                          method="post"
+                          enctype="multipart/form-data">
+
+                        <input type="hidden"
+                               name="id"
+                               value="@Model.Id" />
+
+                        <input type="hidden"
+                               name="rowVersion"
+                               value="@Convert.ToBase64String(Model.RowVersion)" />
+
+                        <label for="receipt"
+                               class="form-label">
+                            @(Model.ReceiptOriginalFileName is null
+                                ? "Upload receipt"
+                                : "Replace receipt")
+                        </label>
+
+                        <input id="receipt"
+                               name="receipt"
+                               type="file"
+                               class="form-control mb-3"
+                               accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                               required />
+
+                        <button type="submit"
+                                class="btn btn-outline-primary">
+                            @(Model.ReceiptOriginalFileName is null
+                                ? "Upload receipt"
+                                : "Replace receipt")
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p class="small text-muted mb-0">
+                        Receipt changes are locked after submission.
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="h4 mb-1">Expense history</h2>
+<p class="small text-muted">
+    All timestamps are displayed in UTC.
+</p>
+
+<div class="list-group shadow-sm">
     @foreach (var entry in Model.History)
     {
         <div class="list-group-item p-3">
             <div class="d-flex justify-content-between gap-3 flex-wrap">
                 <strong>@entry.Action</strong>
+
                 <time datetime="@entry.OccurredAtUtc.ToString("O")">
                     @entry.OccurredAtUtc.ToString(
-                        "dd MMM yyyy HH:mm:ss 'UTC'", culture)
+                        "dd MMM yyyy HH:mm:ss 'UTC'",
+                        culture)
                 </time>
             </div>
 
-            <div class="small text-muted mt-1">@entry.Actor</div>
+            <div class="small text-muted mt-1">
+                @entry.Actor
+            </div>
 
             @if (!string.IsNullOrWhiteSpace(entry.Note))
             {

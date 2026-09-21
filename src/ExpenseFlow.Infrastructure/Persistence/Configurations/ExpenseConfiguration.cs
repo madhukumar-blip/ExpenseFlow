@@ -22,7 +22,22 @@ public sealed class ExpenseConfiguration
             table.HasCheckConstraint(
                 "CK_Expenses_Category_Valid",
                 "[Category] IN (0, 1, 2, 3, 4)");
-        });
+
+            table.HasCheckConstraint(
+                 "CK_Expenses_Receipt_Metadata",
+                 "("
+               + "[ReceiptStoredFileName] IS NULL "
+               + "AND [ReceiptOriginalFileName] IS NULL "
+               + "AND [ReceiptContentType] IS NULL "
+               + "AND [ReceiptSize] IS NULL"
+               + ") OR ("
+               + "[ReceiptStoredFileName] IS NOT NULL "
+               + "AND [ReceiptOriginalFileName] IS NOT NULL "
+               + "AND [ReceiptContentType] IS NOT NULL "
+               + "AND [ReceiptSize] > 0 "
+               + "AND [ReceiptSize] <= 5242880"
+               + ")");
+               });
 
         builder.Property(expense => expense.ReimbursedById)
             .HasMaxLength(450);
@@ -83,6 +98,21 @@ public sealed class ExpenseConfiguration
         builder.Property(expense => expense.Category)
             .HasConversion<int>()
             .IsRequired();
+
+        builder.Property(expense => expense.ReceiptStoredFileName)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(expense => expense.ReceiptOriginalFileName)
+            .HasMaxLength(255)
+            .IsRequired(false);
+
+        builder.Property(expense => expense.ReceiptContentType)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(expense => expense.ReceiptSize)
+            .IsRequired(false);
 
         builder.HasIndex(expense => new
         {

@@ -1,33 +1,39 @@
-﻿@model ExpenseFlow.Web.Models.Expenses.CreateExpenseViewModel
+﻿@model ExpenseFlow.Web.Models.Expenses.EditExpenseViewModel
 @using ExpenseFlow.Domain.Enums
 
 @{
-    ViewData["Title"] = "Create expense";
+    ViewData["Title"] = "Edit expense";
 }
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
-       <div class="mb-4">
-    <h1>Create expense</h1>
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1>Edit expense</h1>
 
-    <p class="text-muted">
-        Enter your business expense details.
-        Your expense will be saved as a draft.
-    </p>
+                <p class="text-muted mb-1">
+                    Update this draft before submitting it for approval.
+                </p>
 
-    <div class="alert alert-info mb-0">
-        After saving the draft, you can attach a PDF or image receipt.
-    </div>
-</div>
+                <p class="small text-muted mb-0">
+                    Receipt files are managed from the expense details page.
+                </p>
+            </div>
+
+            <span class="badge bg-secondary">Draft</span>
+        </div>
 
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <form asp-controller="Expenses"
-                      asp-action="Create"
+                      asp-action="Edit"
                       method="post">
 
+                    <input asp-for="Id" type="hidden" />
+                    <input asp-for="RowVersion" type="hidden" />
+
                     <div asp-validation-summary="All"
-                         class="text-danger"
+                         class="text-danger mb-3"
                          role="alert"></div>
 
                     <div class="mb-3">
@@ -37,7 +43,7 @@
                         <input asp-for="Title"
                                class="form-control"
                                maxlength="150"
-                               placeholder="Example: Client meeting travel" />
+                               autocomplete="off" />
 
                         <span asp-validation-for="Title"
                               class="text-danger"></span>
@@ -50,9 +56,7 @@
                         <textarea asp-for="Description"
                                   class="form-control"
                                   rows="4"
-                                  maxlength="1000"
-                                  placeholder="Explain the business purpose.">
-                        </textarea>
+                                  maxlength="1000"></textarea>
 
                         <span asp-validation-for="Description"
                               class="text-danger"></span>
@@ -101,8 +105,9 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            Save draft
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Save changes
                         </button>
 
                         <a asp-action="Index"
@@ -110,7 +115,9 @@
                             Cancel
                         </a>
                     </div>
-               
+                    <p class="small text-muted">
+                        Receipt files are managed from the expense details page.
+                    </p>
                 </form>
             </div>
         </div>

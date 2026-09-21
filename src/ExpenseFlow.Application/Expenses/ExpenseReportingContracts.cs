@@ -29,4 +29,8 @@ public sealed record ExpenseDetails(
     decimal Amount,
     DateOnly ExpenseDate,
     ExpenseStatus Status,
+    string? ReceiptOriginalFileName,
+    string? ReceiptContentType,
+    long? ReceiptSize,
+    byte[] RowVersion,
     IReadOnlyList<ExpenseHistoryEntry> History);

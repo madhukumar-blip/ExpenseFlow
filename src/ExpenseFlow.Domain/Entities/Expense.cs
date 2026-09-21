@@ -37,6 +37,14 @@ public class Expense
 
     public string? PaymentReference { get; private set; }
 
+    public string? ReceiptStoredFileName { get; private set; }
+
+    public string? ReceiptOriginalFileName { get; private set; }
+
+    public string? ReceiptContentType { get; private set; }
+
+    public long? ReceiptSize { get; private set; }
+
     public byte[] RowVersion { get; private set; } = [];
 
     public ExpenseCategory Category { get; private set; }
@@ -126,8 +134,60 @@ public class Expense
         if (Status != ExpenseStatus.Draft)
         {
             throw new InvalidOperationException(
-                "Only draft expenses can be edited or submitted.");
+                "Only draft expenses can be changed.");
         }
+    }
+
+    public void AttachReceipt(string storedFileName, string originalFileName, string contentType, long size)
+    {
+        EnsureDraft();
+
+        if (string.IsNullOrWhiteSpace(storedFileName) ||
+            storedFileName.Trim().Length > 100)
+        {
+            throw new ArgumentException(
+                "A valid stored receipt filename is required.",
+                nameof(storedFileName));
+        }
+
+        if (string.IsNullOrWhiteSpace(originalFileName) ||
+            originalFileName.Trim().Length > 255)
+        {
+            throw new ArgumentException(
+                "The original receipt filename must contain "
+                + "between 1 and 255 characters.",
+                nameof(originalFileName));
+        }
+
+        if (string.IsNullOrWhiteSpace(contentType) ||
+            contentType.Trim().Length > 100)
+        {
+            throw new ArgumentException(
+                "A valid receipt content type is required.",
+                nameof(contentType));
+        }
+
+        if (size <= 0 || size > 5 * 1024 * 1024)
+        {
+            throw new ArgumentException(
+                "The receipt must be between 1 byte and 5 MB.",
+                nameof(size));
+        }
+
+        ReceiptStoredFileName = storedFileName.Trim();
+        ReceiptOriginalFileName = originalFileName.Trim();
+        ReceiptContentType = contentType.Trim();
+        ReceiptSize = size;
+    }
+
+    public void RemoveReceipt()
+    {
+        EnsureDraft();
+
+        ReceiptStoredFileName = null;
+        ReceiptOriginalFileName = null;
+        ReceiptContentType = null;
+        ReceiptSize = null;
     }
 
     public void ChangeCategory(ExpenseCategory category)

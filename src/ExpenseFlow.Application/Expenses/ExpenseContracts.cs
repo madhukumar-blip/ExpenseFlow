@@ -20,8 +20,32 @@ public sealed record ExpenseListItem(
     byte[] RowVersion,
     string? RejectionReason);
 
+public sealed record UpdateExpenseCommand(
+    string Title,
+    string Description,
+    decimal Amount,
+    DateOnly ExpenseDate,
+    ExpenseCategory Category,
+    byte[] RowVersion);
+
+public sealed record ExpenseDraft(
+    Guid Id,
+    string Title,
+    string Description,
+    decimal Amount,
+    DateOnly ExpenseDate,
+    ExpenseCategory Category,
+    byte[] RowVersion);
+
 public interface IExpenseStore
-{
+{ 
+
+    Task<ExpenseDraft?> GetOwnedDraftAsync(
+    Guid expenseId,
+    string employeeId,
+    CancellationToken cancellationToken);
+    void Remove(Expense expense);
+
     Task<PagedExpenses> SearchAsync(
     string employeeId,
     ExpenseSearch filter,

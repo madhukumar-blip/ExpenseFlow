@@ -294,14 +294,18 @@ public sealed class ExpenseStore : IExpenseStore
         }
 
         return new ExpenseDetails(
-            expense.Id,
-            expense.Title,
-            expense.Description,
-            expense.Category,
-            expense.Amount,
-            expense.ExpenseDate,
-            expense.Status,
-            history.OrderBy(entry => entry.OccurredAtUtc).ToList());
+               expense.Id,
+    expense.Title,
+    expense.Description,
+    expense.Category,
+    expense.Amount,
+    expense.ExpenseDate,
+    expense.Status,
+    expense.ReceiptOriginalFileName,
+    expense.ReceiptContentType,
+    expense.ReceiptSize,
+    expense.RowVersion,
+    history.OrderBy(entry => entry.OccurredAtUtc).ToList());
     }
 
     public async Task<IReadOnlyList<PendingExpenseItem>> ListPendingAsync(
@@ -341,5 +345,32 @@ public sealed class ExpenseStore : IExpenseStore
                 expense.Id == expenseId &&
                 expense.EmployeeId != managerId,
             cancellationToken);
+    }
+
+    public Task<ExpenseDraft?> GetOwnedDraftAsync(
+    Guid expenseId,
+    string employeeId,
+    CancellationToken cancellationToken)
+    {
+        return _dbContext.Expenses
+            .AsNoTracking()
+            .Where(expense =>
+                expense.Id == expenseId &&
+                expense.EmployeeId == employeeId &&
+                expense.Status == ExpenseStatus.Draft)
+            .Select(expense => new ExpenseDraft(
+                expense.Id,
+                expense.Title,
+                expense.Description,
+                expense.Amount,
+                expense.ExpenseDate,
+                expense.Category,
+                expense.RowVersion))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    public void Remove(Expense expense)
+    {
+        _dbContext.Expenses.Remove(expense);
     }
 }

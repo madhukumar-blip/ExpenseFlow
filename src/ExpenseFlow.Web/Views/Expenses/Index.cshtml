@@ -216,22 +216,40 @@
                                 <td>
                                     @if (expense.Status == ExpenseStatus.Draft)
                                     {
-                                        <form asp-action="Submit"
-                                              method="post">
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <a asp-action="Edit"
+                                               asp-route-id="@expense.Id"
+                                               class="btn btn-sm btn-outline-secondary">
+                                                Edit
+                                            </a>
 
-                                            <input type="hidden"
-                                                   name="id"
-                                                   value="@expense.Id" />
+                                            <form asp-action="Submit"
+                                                  method="post">
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@expense.Id" />
 
-                                            <input type="hidden"
-                                                   name="rowVersion"
-                                                   value="@Convert.ToBase64String(expense.RowVersion)" />
+                                                <input type="hidden"
+                                                       name="rowVersion"
+                                                       value="@Convert.ToBase64String(expense.RowVersion)" />
 
-                                            <button type="submit"
-                                                    class="btn btn-sm btn-outline-primary">
-                                                Submit
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-primary">
+                                                    Submit
+                                                </button>
+                                            </form>
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteExpenseModal"
+                                                    data-expense-id="@expense.Id"
+                                                    data-row-version="@Convert.ToBase64String(expense.RowVersion)"
+                                                    data-expense-title="@expense.Title"
+                                                    data-expense-amount="@expense.Amount.ToString("C2", culture)">
+                                                Delete
                                             </button>
-                                        </form>
+                                        </div>
                                     }
                                     else
                                     {
@@ -248,6 +266,70 @@
                         }
                     </tbody>
                 </table>
+                <div class="modal fade"
+                     id="deleteExpenseModal"
+                     tabindex="-1"
+                     aria-labelledby="deleteExpenseModalLabel"
+                     aria-hidden="true">
+
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2 class="modal-title fs-5"
+                                    id="deleteExpenseModalLabel">
+                                    Delete draft expense?
+                                </h2>
+
+                                <button type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                            </div>
+
+                            <div class="modal-body">
+                                <p class="mb-2">
+                                    You are about to permanently delete:
+                                </p>
+
+                                <p class="fw-semibold mb-1"
+                                   id="deleteExpenseTitle"></p>
+
+                                <p class="text-muted mb-0"
+                                   id="deleteExpenseAmount"></p>
+
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    This action cannot be undone.
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button"
+                                        class="btn btn-outline-secondary"
+                                        data-bs-dismiss="modal">
+                                    Cancel
+                                </button>
+
+                                <form asp-action="Delete"
+                                      method="post"
+                                      id="deleteExpenseForm">
+
+                                    <input type="hidden"
+                                           name="id"
+                                           id="deleteExpenseId" />
+
+                                    <input type="hidden"
+                                           name="rowVersion"
+                                           id="deleteExpenseRowVersion" />
+
+                                    <button type="submit"
+                                            class="btn btn-danger">
+                                        Delete expense
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -307,4 +389,27 @@
             </nav>
         }
     }
+}
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById("deleteExpenseModal");
+
+            modal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+
+                document.getElementById("deleteExpenseId").value =
+                    button.dataset.expenseId;
+
+                document.getElementById("deleteExpenseRowVersion").value =
+                    button.dataset.rowVersion;
+
+                document.getElementById("deleteExpenseTitle").textContent =
+                    button.dataset.expenseTitle;
+
+                document.getElementById("deleteExpenseAmount").textContent =
+                    button.dataset.expenseAmount;
+            });
+        });
+    </script>
 }

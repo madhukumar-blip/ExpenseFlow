@@ -2,7 +2,8 @@ using ExpenseFlow.Application.Expenses;
 using ExpenseFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using ExpenseFlow.Web.Setup;
+using ExpenseFlow.Web.Setup; 
+using ExpenseFlow.Infrastructure.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,14 @@ var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' was not found.");
+
+var receiptStoragePath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "App_Data",
+    "receipts");
+
+builder.Services.AddSingleton<IReceiptStorage>(
+    new LocalReceiptStorage(receiptStoragePath));
 
 builder.Services.AddDbContext<ExpenseFlowDbContext>(options =>
     options.UseSqlServer(connectionString));
