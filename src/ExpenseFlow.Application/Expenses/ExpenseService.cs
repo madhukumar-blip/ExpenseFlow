@@ -55,10 +55,22 @@ public sealed class ExpenseService
                 "This expense does not have a receipt.");
         }
 
+        var originalFileName =
+    expense.ReceiptOriginalFileName;
+
         var storedFileName =
-            expense.ReceiptStoredFileName;
+    expense.ReceiptStoredFileName;
 
         expense.RemoveReceipt();
+
+
+        _store.AddAudit(new ExpenseAuditEntry(
+            expense.Id,
+            employeeId,
+            ExpenseAuditAction.ReceiptRemoved,
+            previousStatus: ExpenseStatus.Draft,
+            newStatus: ExpenseStatus.Draft,
+            comment: originalFileName));
 
         await _store.SaveChangesAsync(cancellationToken);
 
@@ -161,6 +173,27 @@ public sealed class ExpenseService
                 storedFile.ContentType,
                 storedFile.Size);
 
+            var auditAction =
+    string.IsNullOrWhiteSpace(previousStoredFileName)
+        ? ExpenseAuditAction.ReceiptUploaded
+        : ExpenseAuditAction.ReceiptReplaced;
+
+            _store.AddAudit(new ExpenseAuditEntry(
+    expense.Id,
+    employeeId,
+    ExpenseAuditAction.Deleted,
+    previousStatus: ExpenseStatus.Draft,
+    newStatus: null,
+    comment: $"Draft expense deleted: {expense.Title}"));
+
+            _store.AddAudit(new ExpenseAuditEntry(
+                expense.Id,
+                employeeId,
+                auditAction,
+                previousStatus: ExpenseStatus.Draft,
+                newStatus: ExpenseStatus.Draft,
+                comment: storedFile.OriginalFileName));
+
             await _store.SaveChangesAsync(cancellationToken);
         }
         catch
@@ -231,6 +264,16 @@ public sealed class ExpenseService
 
         await _store.AddAsync(expense, cancellationToken);
 
+        _store.AddAudit(new ExpenseAuditEntry(
+            expense.Id,
+            employeeId,
+            ExpenseAuditAction.Created,
+            previousStatus: null,
+            newStatus: ExpenseStatus.Draft,
+            comment: "Expense created as a draft."));
+
+        await _store.SaveChangesAsync(cancellationToken);
+
         return expense.Id;
     }
 
@@ -296,6 +339,14 @@ public sealed class ExpenseService
             command.ExpenseDate);
 
         expense.ChangeCategory(command.Category);
+
+        _store.AddAudit(new ExpenseAuditEntry(
+    expense.Id,
+    employeeId,
+    ExpenseAuditAction.Updated,
+    previousStatus: ExpenseStatus.Draft,
+    newStatus: ExpenseStatus.Draft,
+    comment: "Draft expense details updated."));
 
         await _store.SaveChangesAsync(cancellationToken);
 
@@ -378,6 +429,14 @@ public sealed class ExpenseService
 
         expense.Submit();
 
+        _store.AddAudit(new ExpenseAuditEntry(
+    expense.Id,
+    employeeId,
+    ExpenseAuditAction.Submitted,
+    previousStatus: ExpenseStatus.Draft,
+    newStatus: ExpenseStatus.Submitted,
+    comment: "Submitted for manager approval."));
+
         await _store.SaveChangesAsync(cancellationToken);
 
         return true;
@@ -403,7 +462,7 @@ public sealed class ExpenseService
         }
     }
 
-    private async Task TryDeleteStoredReceiptAsync(    string storedFileName,    CancellationToken cancellationToken)
+    private async Task TryDeleteStoredReceiptAsync(string storedFileName, CancellationToken cancellationToken)
     {
         try
         {
@@ -413,11 +472,11 @@ public sealed class ExpenseService
         }
         catch (IOException)
         {
-         
+
         }
         catch (UnauthorizedAccessException)
         {
-            
+
         }
     }
 }

@@ -13,6 +13,7 @@ public sealed class ReviewExpenseViewModel
     [EnumDataType(typeof(ReviewDecision))]
     public ReviewDecision Decision { get; set; }
 
+    [Display(Name = "Manager comment")]
     [StringLength(1000)]
-    public string? Reason { get; set; }
+    public string? Comment { get; set; }
 }

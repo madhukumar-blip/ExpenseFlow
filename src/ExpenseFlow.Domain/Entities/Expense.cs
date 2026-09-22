@@ -221,8 +221,7 @@ public class Expense
         if (string.IsNullOrWhiteSpace(reason))
         {
             throw new ArgumentException(
-                "A rejection reason is required.",
-                nameof(reason));
+       "A rejection reason is required.");
         }
 
         if (reason.Trim().Length > 1000)

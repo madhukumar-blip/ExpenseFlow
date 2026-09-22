@@ -1,5 +1,8 @@
 ﻿namespace ExpenseFlow.Application.Expenses;
 
+using ExpenseFlow.Domain.Entities;
+using ExpenseFlow.Domain.Enums;
+
 public sealed class ExpenseReviewService
 {
     private readonly IExpenseStore _store;
@@ -20,13 +23,7 @@ public sealed class ExpenseReviewService
             cancellationToken);
     }
 
-    public async Task<bool> ReviewAsync(
-        Guid expenseId,
-        string managerId,
-        ReviewDecision decision,
-        string? reason,
-        byte[] expectedRowVersion,
-        CancellationToken cancellationToken)
+    public async Task<bool> ReviewAsync(Guid expenseId, string managerId, ReviewDecision decision, string? comment, byte[] expectedRowVersion, CancellationToken cancellationToken)
     {
         ValidateManagerId(managerId);
 
@@ -57,14 +54,36 @@ public sealed class ExpenseReviewService
                 "This expense has changed. Review the refreshed queue.");
         }
 
+        if (comment?.Trim().Length > 1000)
+        {
+            throw new ArgumentException(
+                "Manager comment cannot exceed 1000 characters.");
+        }
+
         if (decision == ReviewDecision.Approve)
         {
             expense.Approve(managerId);
         }
         else
         {
-            expense.Reject(managerId, reason);
+            expense.Reject(managerId, comment);
         }
+
+        var auditAction = decision == ReviewDecision.Approve
+            ? ExpenseAuditAction.Approved
+            : ExpenseAuditAction.Rejected;
+
+        var auditComment = decision == ReviewDecision.Approve
+            ? comment
+            : expense.RejectionReason;
+
+        _store.AddAudit(new ExpenseAuditEntry(
+            expense.Id,
+            managerId,
+            auditAction,
+            previousStatus: ExpenseStatus.Submitted,
+            newStatus: expense.Status,
+            comment: auditComment));
 
         await _store.SaveChangesAsync(cancellationToken);
 

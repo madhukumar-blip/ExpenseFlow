@@ -22,8 +22,7 @@ public sealed class ApprovalsController : Controller
             "The authenticated user has no identifier.");
 
     [HttpGet]
-    public async Task<IActionResult> Index(
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var expenses = await _reviewService.ListPendingAsync(
             CurrentManagerId,
@@ -34,9 +33,7 @@ public sealed class ApprovalsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Review(
-        ReviewExpenseViewModel model,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Review(ReviewExpenseViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid || model.Id == Guid.Empty)
         {
@@ -50,8 +47,7 @@ public sealed class ApprovalsController : Controller
 
         try
         {
-            expectedRowVersion =
-                Convert.FromBase64String(model.RowVersion);
+            expectedRowVersion = Convert.FromBase64String(model.RowVersion);
         }
         catch (FormatException)
         {
@@ -65,13 +61,7 @@ public sealed class ApprovalsController : Controller
 
         try
         {
-            var found = await _reviewService.ReviewAsync(
-                model.Id,
-                CurrentManagerId,
-                model.Decision,
-                model.Reason,
-                expectedRowVersion,
-                cancellationToken);
+            var found = await _reviewService.ReviewAsync(model.Id, CurrentManagerId, model.Decision, model.Comment, expectedRowVersion, cancellationToken);
 
             if (!found)
             {

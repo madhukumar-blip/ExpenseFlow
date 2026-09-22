@@ -74,16 +74,23 @@ else
                            value="@Convert.ToBase64String(expense.RowVersion)" />
 
                     <div class="mb-3">
-                        <label for="reason-@expense.Id"
+                        <label for="comment-@expense.Id"
                                class="form-label">
-                            Reason — required when rejecting
+                            Manager comment
                         </label>
 
-                        <textarea id="reason-@expense.Id"
-                                  name="Reason"
+                        <textarea id="comment-@expense.Id"
+                                  name="Comment"
                                   class="form-control"
                                   maxlength="1000"
-                                  rows="2"></textarea>
+                                  rows="3"
+                                  placeholder="Optional for approval; required for rejection."></textarea>
+                        <div class="invalid-feedback">
+                            Enter a reason before rejecting this expense.
+                        </div>
+                        <div class="form-text">
+                            Explain exceptions, required corrections, or approval notes.
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -104,5 +111,31 @@ else
                 </form>
             </div>
         </article>
+        @section Scripts {
+            <script>
+                document.querySelectorAll(
+                    'form[action*="Review"]'
+                ).forEach(function(form) {
+                    const comment = form.querySelector(
+                        'textarea[name="Comment"]'
+                    );
+
+                    comment.addEventListener("input", function() {
+                        comment.classList.remove("is-invalid");
+                    });
+
+                    form.addEventListener("submit", function(event) {
+                        const decision = event.submitter?.value;
+
+                        if (decision === "Reject" &&
+                            !comment.value.trim()) {
+                            event.preventDefault();
+                            comment.classList.add("is-invalid");
+                            comment.focus();
+                        }
+                    });
+                });
+            </script>
+        }
     }
 }

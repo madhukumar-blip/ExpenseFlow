@@ -1,4 +1,7 @@
-﻿namespace ExpenseFlow.Application.Expenses;
+﻿using ExpenseFlow.Domain.Entities;
+using ExpenseFlow.Domain.Enums;
+
+namespace ExpenseFlow.Application.Expenses;
 
 public sealed class ExpenseFinanceService
 {
@@ -52,6 +55,14 @@ public sealed class ExpenseFinanceService
         }
 
         expense.Reimburse(financeUserId, paymentReference);
+
+        _store.AddAudit(new ExpenseAuditEntry(
+    expense.Id,
+    financeUserId,
+    ExpenseAuditAction.Reimbursed,
+    previousStatus: ExpenseStatus.Approved,
+    newStatus: ExpenseStatus.Reimbursed,
+    comment: $"Payment reference: {expense.PaymentReference}"));
 
         await _store.SaveChangesAsync(cancellationToken);
 

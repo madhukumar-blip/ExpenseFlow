@@ -14,10 +14,7 @@ public sealed class ExpenseStore : IExpenseStore
         _dbContext = dbContext;
     }
 
-    public async Task<PagedExpenses> SearchAsync(
-    string employeeId,
-    ExpenseSearch filter,
-    CancellationToken cancellationToken)
+    public async Task<PagedExpenses> SearchAsync(string employeeId, ExpenseSearch filter, CancellationToken cancellationToken)
     {
         const int pageSize = 10;
 
@@ -92,19 +89,16 @@ public sealed class ExpenseStore : IExpenseStore
             pageSize);
     }
 
-    public async Task AddAsync(
-        Expense expense,
-        CancellationToken cancellationToken)
+    public Task AddAsync(Expense expense, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _dbContext.Expenses.Add(expense);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        return Task.CompletedTask;
     }
 
-    public async Task<IReadOnlyList<ExpenseListItem>>
-        ListForEmployeeAsync(
-            string employeeId,
-            CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ExpenseListItem>> ListForEmployeeAsync(string employeeId, CancellationToken cancellationToken)
     {
         return await _dbContext.Expenses
             .AsNoTracking()
@@ -124,10 +118,7 @@ public sealed class ExpenseStore : IExpenseStore
             .ToListAsync(cancellationToken);
     }
 
-    public Task<Expense?> FindOwnedAsync(
-        Guid expenseId,
-        string employeeId,
-        CancellationToken cancellationToken)
+    public Task<Expense?> FindOwnedAsync(Guid expenseId, string employeeId, CancellationToken cancellationToken)
     {
         return _dbContext.Expenses.SingleOrDefaultAsync(
             expense =>
@@ -136,8 +127,7 @@ public sealed class ExpenseStore : IExpenseStore
             cancellationToken);
     }
 
-    public async Task SaveChangesAsync(
-        CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -152,9 +142,7 @@ public sealed class ExpenseStore : IExpenseStore
         }
     }
 
-    public async Task<IReadOnlyList<FinanceExpenseItem>> ListApprovedAsync(
-    string financeUserId,
-    CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<FinanceExpenseItem>> ListApprovedAsync(string financeUserId, CancellationToken cancellationToken)
     {
         return await (
             from expense in _dbContext.Expenses.AsNoTracking()
@@ -177,10 +165,7 @@ public sealed class ExpenseStore : IExpenseStore
             .ToListAsync(cancellationToken);
     }
 
-    public Task<Expense?> FindForReimbursementAsync(
-        Guid expenseId,
-        string financeUserId,
-        CancellationToken cancellationToken)
+    public Task<Expense?> FindForReimbursementAsync(Guid expenseId, string financeUserId, CancellationToken cancellationToken)
     {
         return _dbContext.Expenses.SingleOrDefaultAsync(
             expense =>
@@ -189,9 +174,7 @@ public sealed class ExpenseStore : IExpenseStore
             cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ExpenseStatusSummary>> GetSummaryAsync(
-        string employeeId,
-        CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ExpenseStatusSummary>> GetSummaryAsync(string employeeId, CancellationToken cancellationToken)
     {
         return await _dbContext.Expenses
             .AsNoTracking()
@@ -204,10 +187,7 @@ public sealed class ExpenseStore : IExpenseStore
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<ExpenseDetails?> GetOwnedDetailsAsync(
-        Guid expenseId,
-        string employeeId,
-        CancellationToken cancellationToken)
+    public async Task<ExpenseDetails?> GetOwnedDetailsAsync(Guid expenseId, string employeeId, CancellationToken cancellationToken)
     {
         var expense = await _dbContext.Expenses
             .AsNoTracking()
@@ -221,16 +201,17 @@ public sealed class ExpenseStore : IExpenseStore
             return null;
         }
 
-        var actorIds = new[]
-        {
-        expense.EmployeeId,
-        expense.ReviewedById,
-        expense.ReimbursedById
-    }
-        .Where(id => !string.IsNullOrWhiteSpace(id))
-        .Select(id => id!)
-        .Distinct()
-        .ToArray();
+        var auditEntries = await _dbContext.ExpenseAuditEntries
+   .AsNoTracking()
+   .Where(entry => entry.ExpenseId == expenseId)
+   .OrderBy(entry => entry.OccurredAtUtc)
+   .ThenBy(entry => entry.Id)
+   .ToListAsync(cancellationToken);
+
+        var actorIds = auditEntries
+            .Select(entry => entry.ActorId)
+            .Distinct()
+            .ToArray();
 
         var actors = await _dbContext.Users
             .AsNoTracking()
@@ -245,72 +226,46 @@ public sealed class ExpenseStore : IExpenseStore
                 user => user.Name,
                 cancellationToken);
 
-        string ActorName(string? id)
+        string ActorName(string actorId)
         {
-            return id is not null &&
-                   actors.TryGetValue(id, out var name)
+            return actors.TryGetValue(actorId, out var name)
                 ? name
                 : "Unavailable account";
         }
 
-        var history = new List<ExpenseHistoryEntry>
-    {
-        new(
-            "Created",
-            expense.CreatedAtUtc,
-            ActorName(expense.EmployeeId),
-            "Expense created as a draft.")
-    };
+        var history = auditEntries
+            .Select(entry => new ExpenseHistoryEntry(
+                FormatAuditAction(entry.Action),
+                entry.OccurredAtUtc,
+                ActorName(entry.ActorId),
+                entry.Comment))
+            .ToList();
 
-        if (expense.SubmittedAtUtc is { } submittedAt)
+        if (history.Count == 0)
         {
             history.Add(new ExpenseHistoryEntry(
-                "Submitted",
-                submittedAt,
-                ActorName(expense.EmployeeId),
-                "Submitted for manager approval."));
-        }
-
-        if (expense.ReviewedAtUtc is { } reviewedAt)
-        {
-            var rejected = expense.Status == ExpenseStatus.Rejected;
-
-            history.Add(new ExpenseHistoryEntry(
-                rejected ? "Rejected" : "Approved",
-                reviewedAt,
-                ActorName(expense.ReviewedById),
-                rejected
-                    ? expense.RejectionReason
-                    : "Approved for reimbursement."));
-        }
-
-        if (expense.ReimbursedAtUtc is { } reimbursedAt)
-        {
-            history.Add(new ExpenseHistoryEntry(
-                "Reimbursement recorded",
-                reimbursedAt,
-                ActorName(expense.ReimbursedById),
-                $"Payment reference: {expense.PaymentReference}"));
+                "Existing expense",
+                expense.CreatedAtUtc,
+                "System",
+                $"Current status: {expense.Status}."));
         }
 
         return new ExpenseDetails(
-               expense.Id,
-    expense.Title,
-    expense.Description,
-    expense.Category,
-    expense.Amount,
-    expense.ExpenseDate,
-    expense.Status,
-    expense.ReceiptOriginalFileName,
-    expense.ReceiptContentType,
-    expense.ReceiptSize,
-    expense.RowVersion,
-    history.OrderBy(entry => entry.OccurredAtUtc).ToList());
+            expense.Id,
+            expense.Title,
+            expense.Description,
+            expense.Category,
+            expense.Amount,
+            expense.ExpenseDate,
+            expense.Status,
+            expense.ReceiptOriginalFileName,
+            expense.ReceiptContentType,
+            expense.ReceiptSize,
+            expense.RowVersion,
+            history);
     }
 
-    public async Task<IReadOnlyList<PendingExpenseItem>> ListPendingAsync(
-    string managerId,
-    CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PendingExpenseItem>> ListPendingAsync(string managerId, CancellationToken cancellationToken)
     {
         return await (
             from expense in _dbContext.Expenses.AsNoTracking()
@@ -335,10 +290,7 @@ public sealed class ExpenseStore : IExpenseStore
             .ToListAsync(cancellationToken);
     }
 
-    public Task<Expense?> FindForReviewAsync(
-        Guid expenseId,
-        string managerId,
-        CancellationToken cancellationToken)
+    public Task<Expense?> FindForReviewAsync(Guid expenseId, string managerId, CancellationToken cancellationToken)
     {
         return _dbContext.Expenses.SingleOrDefaultAsync(
             expense =>
@@ -347,10 +299,7 @@ public sealed class ExpenseStore : IExpenseStore
             cancellationToken);
     }
 
-    public Task<ExpenseDraft?> GetOwnedDraftAsync(
-    Guid expenseId,
-    string employeeId,
-    CancellationToken cancellationToken)
+    public Task<ExpenseDraft?> GetOwnedDraftAsync(Guid expenseId, string employeeId, CancellationToken cancellationToken)
     {
         return _dbContext.Expenses
             .AsNoTracking()
@@ -372,5 +321,30 @@ public sealed class ExpenseStore : IExpenseStore
     public void Remove(Expense expense)
     {
         _dbContext.Expenses.Remove(expense);
+    }
+
+    public void AddAudit(ExpenseAuditEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        _dbContext.ExpenseAuditEntries.Add(entry);
+    }
+
+    private static string FormatAuditAction(ExpenseAuditAction action)
+    {
+        return action switch
+        {
+            ExpenseAuditAction.Created => "Expense created",
+            ExpenseAuditAction.Updated => "Draft updated",
+            ExpenseAuditAction.ReceiptUploaded => "Receipt uploaded",
+            ExpenseAuditAction.ReceiptReplaced => "Receipt replaced",
+            ExpenseAuditAction.ReceiptRemoved => "Receipt removed",
+            ExpenseAuditAction.Submitted => "Submitted for approval",
+            ExpenseAuditAction.Approved => "Expense approved",
+            ExpenseAuditAction.Rejected => "Expense rejected",
+            ExpenseAuditAction.Reimbursed => "Reimbursement recorded",
+            ExpenseAuditAction.Deleted => "Draft deleted",
+            _ => action.ToString()
+        };
     }
 }

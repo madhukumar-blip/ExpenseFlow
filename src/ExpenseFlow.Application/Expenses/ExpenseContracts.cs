@@ -1,5 +1,5 @@
 ﻿using ExpenseFlow.Domain.Entities;
-using ExpenseFlow.Domain.Enums;
+using ExpenseFlow.Domain.Enums; 
 
 namespace ExpenseFlow.Application.Expenses;
 
@@ -38,7 +38,8 @@ public sealed record ExpenseDraft(
     byte[] RowVersion);
 
 public interface IExpenseStore
-{ 
+{
+    void AddAudit(ExpenseAuditEntry entry);
 
     Task<ExpenseDraft?> GetOwnedDraftAsync(
     Guid expenseId,

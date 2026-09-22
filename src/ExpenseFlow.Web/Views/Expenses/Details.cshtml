@@ -206,26 +206,48 @@
 </p>
 
 <div class="list-group shadow-sm">
-    @foreach (var entry in Model.History)
+    @if (Model.History.Count == 0)
     {
-        <div class="list-group-item p-3">
-            <div class="d-flex justify-content-between gap-3 flex-wrap">
-                <strong>@entry.Action</strong>
-
-                <time datetime="@entry.OccurredAtUtc.ToString("O")">
-                    @entry.OccurredAtUtc.ToString(
-                        "dd MMM yyyy HH:mm:ss 'UTC'",
-                        culture)
-                </time>
+        <div class="card shadow-sm">
+            <div class="card-body text-muted">
+                No activity has been recorded.
             </div>
-
-            <div class="small text-muted mt-1">
-                @entry.Actor
-            </div>
-
-            @if (!string.IsNullOrWhiteSpace(entry.Note))
+        </div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var entry in Model.History)
             {
-                <p class="mb-0 mt-2">@entry.Note</p>
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle bg-primary"
+                                  style="width: 10px; height: 10px;"
+                                  aria-hidden="true"></span>
+
+                            <strong>@entry.Action</strong>
+                        </div>
+
+                        <time class="small text-muted"
+                              datetime="@entry.OccurredAtUtc.ToString("O")">
+                            @entry.OccurredAtUtc.ToString(
+                                "dd MMM yyyy HH:mm:ss 'UTC'",
+                                culture)
+                        </time>
+                    </div>
+
+                    <div class="small text-muted mt-2">
+                        By @entry.Actor
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(entry.Note))
+                    {
+                        <div class="bg-light rounded p-2 mt-2">
+                            @entry.Note
+                        </div>
+                    }
+                </div>
             }
         </div>
     }
