@@ -16,4 +16,5 @@ public sealed record PendingExpenseItem(
     ExpenseCategory Category,
     decimal Amount,
     DateOnly ExpenseDate,
+    string? ReceiptOriginalFileName,
     byte[] RowVersion);

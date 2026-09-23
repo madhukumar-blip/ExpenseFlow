@@ -38,7 +38,16 @@ public sealed record ExpenseDraft(
     byte[] RowVersion);
 
 public interface IExpenseStore
-{ 
+{
+    Task<Expense?> FindForManagerReceiptAsync(
+    Guid expenseId,
+    string managerId,
+    CancellationToken cancellationToken);
+
+    Task<Expense?> FindForFinanceReceiptAsync(
+        Guid expenseId,
+        string financeUserId,
+        CancellationToken cancellationToken);
 
     Task<ExpenseDraft?> GetOwnedDraftAsync(
     Guid expenseId,

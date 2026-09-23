@@ -60,7 +60,42 @@ else
                 </div>
 
                 <p>@expense.Description</p>
+                @if (!string.IsNullOrWhiteSpace(
+    expense.ReceiptOriginalFileName))
+                {
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <div class="small text-muted">Receipt evidence</div>
+                                <div class="fw-semibold text-break">
+                                    @expense.ReceiptOriginalFileName
+                                </div>
+                            </div>
 
+                            <div class="d-flex gap-2">
+                                <a asp-action="PreviewReceipt"
+                                   asp-route-id="@expense.Id"
+                                   target="_blank"
+                                   rel="noopener"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Preview
+                                </a>
+
+                                <a asp-action="DownloadReceipt"
+                                   asp-route-id="@expense.Id"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning py-2">
+                        No receipt was attached to this expense.
+                    </div>
+                }
                 <form asp-controller="Approvals"
                       asp-action="Review"
                       method="post">
@@ -74,16 +109,23 @@ else
                            value="@Convert.ToBase64String(expense.RowVersion)" />
 
                     <div class="mb-3">
-                        <label for="reason-@expense.Id"
+                        <label for="comment-@expense.Id"
                                class="form-label">
-                            Reason — required when rejecting
+                            Manager comment
                         </label>
 
-                        <textarea id="reason-@expense.Id"
-                                  name="Reason"
+                        <textarea id="comment-@expense.Id"
+                                  name="Comment"
                                   class="form-control"
                                   maxlength="1000"
-                                  rows="2"></textarea>
+                                  rows="3"
+                                  placeholder="Optional for approval; required for rejection."></textarea>
+                        <div class="invalid-feedback">
+                            Enter a reason before rejecting this expense.
+                        </div>
+                        <div class="form-text">
+                            Explain exceptions, required corrections, or approval notes.
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -104,5 +146,31 @@ else
                 </form>
             </div>
         </article>
+        @section Scripts {
+            <script>
+                document.querySelectorAll(
+                    'form[action*="Review"]'
+                ).forEach(function(form) {
+                    const comment = form.querySelector(
+                        'textarea[name="Comment"]'
+                    );
+
+                    comment.addEventListener("input", function() {
+                        comment.classList.remove("is-invalid");
+                    });
+
+                    form.addEventListener("submit", function(event) {
+                        const decision = event.submitter?.value;
+
+                        if (decision === "Reject" &&
+                            !comment.value.trim()) {
+                            event.preventDefault();
+                            comment.classList.add("is-invalid");
+                            comment.focus();
+                        }
+                    });
+                });
+            </script>
+        }
     }
 }

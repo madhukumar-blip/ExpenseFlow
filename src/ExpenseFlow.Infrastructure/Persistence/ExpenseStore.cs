@@ -152,9 +152,7 @@ public sealed class ExpenseStore : IExpenseStore
         }
     }
 
-    public async Task<IReadOnlyList<FinanceExpenseItem>> ListApprovedAsync(
-    string financeUserId,
-    CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<FinanceExpenseItem>> ListApprovedAsync(string financeUserId, CancellationToken cancellationToken)
     {
         return await (
             from expense in _dbContext.Expenses.AsNoTracking()
@@ -165,17 +163,53 @@ public sealed class ExpenseStore : IExpenseStore
                 && expense.EmployeeId != financeUserId
             orderby expense.ReviewedAtUtc, expense.Id
             select new FinanceExpenseItem(
-                expense.Id,
-                employee == null
-                    ? "Unavailable account"
-                    : employee.Email ?? "No email",
-                expense.Title,
-                expense.Amount,
-                expense.ReviewedAtUtc,
-                expense.RowVersion))
+    expense.Id,
+    employee == null
+        ? "Unavailable account"
+        : employee.Email ?? "No email",
+    expense.Title,
+    expense.Amount,
+    expense.ReviewedAtUtc,
+    expense.ReceiptOriginalFileName,
+    expense.RowVersion))
             .Take(100)
             .ToListAsync(cancellationToken);
     }
+
+    public Task<Expense?> FindForManagerReceiptAsync(
+     Guid expenseId,
+     string managerId,
+     CancellationToken cancellationToken)
+    {
+        return _dbContext.Expenses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                expense =>
+                    expense.Id == expenseId &&
+                    expense.EmployeeId != managerId &&
+                    expense.Status == ExpenseStatus.Submitted &&
+                    expense.ReceiptStoredFileName != null,
+                cancellationToken);
+    }
+
+    public Task<Expense?> FindForFinanceReceiptAsync(
+        Guid expenseId,
+        string financeUserId,
+        CancellationToken cancellationToken)
+    {
+        return _dbContext.Expenses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                expense =>
+                    expense.Id == expenseId &&
+                    expense.EmployeeId != financeUserId &&
+                    (expense.Status == ExpenseStatus.Approved ||
+                     expense.Status == ExpenseStatus.Reimbursed) &&
+                    expense.ReceiptStoredFileName != null,
+                cancellationToken);
+    }
+
+  
 
     public Task<Expense?> FindForReimbursementAsync(
         Guid expenseId,
@@ -294,19 +328,21 @@ public sealed class ExpenseStore : IExpenseStore
         }
 
         return new ExpenseDetails(
-               expense.Id,
-    expense.Title,
-    expense.Description,
-    expense.Category,
-    expense.Amount,
-    expense.ExpenseDate,
-    expense.Status,
-    expense.ReceiptOriginalFileName,
-    expense.ReceiptContentType,
-    expense.ReceiptSize,
-    expense.RowVersion,
-    history.OrderBy(entry => entry.OccurredAtUtc).ToList());
+     expense.Id,
+     expense.Title,
+     expense.Description,
+     expense.Category,
+     expense.Amount,
+     expense.ExpenseDate,
+     expense.Status,
+     expense.ReceiptOriginalFileName,
+     expense.ReceiptContentType,
+     expense.ReceiptSize,
+     expense.RowVersion,
+     history);
     }
+
+
 
     public async Task<IReadOnlyList<PendingExpenseItem>> ListPendingAsync(
     string managerId,
@@ -321,16 +357,17 @@ public sealed class ExpenseStore : IExpenseStore
                 && expense.EmployeeId != managerId
             orderby expense.SubmittedAtUtc, expense.Id
             select new PendingExpenseItem(
-                expense.Id,
-                employee == null
-                    ? "Unavailable account"
-                    : employee.Email ?? "No email",
-                expense.Title,
-                expense.Description,
-                expense.Category,
-                expense.Amount,
-                expense.ExpenseDate,
-                expense.RowVersion))
+    expense.Id,
+    employee == null
+        ? "Unavailable account"
+        : employee.Email ?? "No email",
+    expense.Title,
+    expense.Description,
+    expense.Category,
+    expense.Amount,
+    expense.ExpenseDate,
+    expense.ReceiptOriginalFileName,
+    expense.RowVersion))
             .Take(100)
             .ToListAsync(cancellationToken);
     }
@@ -373,4 +410,5 @@ public sealed class ExpenseStore : IExpenseStore
     {
         _dbContext.Expenses.Remove(expense);
     }
+
 }

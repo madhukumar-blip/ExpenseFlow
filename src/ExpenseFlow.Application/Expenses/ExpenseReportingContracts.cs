@@ -8,6 +8,7 @@ public sealed record FinanceExpenseItem(
     string Title,
     decimal Amount,
     DateTimeOffset? ApprovedAtUtc,
+    string? ReceiptOriginalFileName,
     byte[] RowVersion);
 
 public sealed record ExpenseStatusSummary(
