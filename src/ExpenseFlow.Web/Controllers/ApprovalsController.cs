@@ -98,4 +98,47 @@ public sealed class ApprovalsController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> PreviewReceipt(
+    Guid id,
+    CancellationToken cancellationToken)
+    {
+        var receipt = await _reviewService.GetReceiptAsync(
+            id,
+            CurrentManagerId,
+            cancellationToken);
+
+        if (receipt is null)
+        {
+            return NotFound();
+        }
+
+        return File(
+            receipt.Content,
+            receipt.ContentType,
+            enableRangeProcessing: true);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadReceipt(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var receipt = await _reviewService.GetReceiptAsync(
+            id,
+            CurrentManagerId,
+            cancellationToken);
+
+        if (receipt is null)
+        {
+            return NotFound();
+        }
+
+        return File(
+            receipt.Content,
+            receipt.ContentType,
+            receipt.OriginalFileName,
+            enableRangeProcessing: true);
+    }
 }

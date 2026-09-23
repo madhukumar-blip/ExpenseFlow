@@ -1,0 +1,241 @@
+﻿@model ExpenseFlow.Web.Models.Admin.AdminUsersViewModel
+
+@{
+    ViewData["Title"] = "User management";
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1>User management</h1>
+        <p class="text-muted mb-0">
+            Manage account access and application roles.
+        </p>
+    </div>
+
+    <span class="badge bg-primary fs-6">
+        @Model.TotalCount user(s)
+    </span>
+</div>
+
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success" role="status">
+        @success
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-danger" role="alert">
+        @error
+    </div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form asp-action="Users"
+              method="get"
+              class="row g-2">
+
+            <div class="col-md-8 col-lg-6">
+                <label asp-for="Search"
+                       class="visually-hidden"></label>
+
+                <input asp-for="Search"
+                       class="form-control"
+                       maxlength="100"
+                       placeholder="Search by email or username" />
+            </div>
+
+            <div class="col-auto">
+                <button type="submit"
+                        class="btn btn-primary">
+                    Search
+                </button>
+            </div>
+
+            <div class="col-auto">
+                <a asp-action="Users"
+                   class="btn btn-outline-secondary">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Users.Count == 0)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <h2 class="h4">No users found</h2>
+            <p class="text-muted mb-0">
+                Change the search value and try again.
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var user in Model.Users)
+        {
+            <div class="col-12">
+                <article class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                            <div>
+                                <h2 class="h5 mb-1">
+                                    @user.Email
+                                </h2>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (user.IsCurrentUser)
+                                    {
+                                        <span class="badge bg-primary">
+                                            Current user
+                                        </span>
+                                    }
+
+                                    <span class="badge @(user.IsActive
+                                        ? "bg-success"
+                                        : "bg-danger")">
+                                        @(user.IsActive
+                                            ? "Active"
+                                            : "Deactivated")
+                                    </span>
+                                </div>
+                            </div>
+
+                            @if (!user.IsCurrentUser)
+                            {
+                                <form asp-action="ChangeStatus"
+                                      method="post">
+
+                                    <input type="hidden"
+                                           name="UserId"
+                                           value="@user.Id" />
+
+                                    <input type="hidden"
+                                           name="Activate"
+                                           value="@(!user.IsActive)" />
+
+                                    <button type="submit"
+                                            class="btn btn-sm @(user.IsActive
+                                                ? "btn-outline-danger"
+                                                : "btn-outline-success")"
+                                            onclick="return confirm('Change access for this account?');">
+                                        @(user.IsActive
+                                            ? "Deactivate"
+                                            : "Activate")
+                                    </button>
+                                </form>
+                            }
+                        </div>
+
+                        <form asp-action="UpdateRoles"
+                              method="post">
+
+                            <input type="hidden"
+                                   name="UserId"
+                                   value="@user.Id" />
+
+                            <fieldset @(!user.IsActive ? "disabled" : null)>
+                                <legend class="h6">
+                                    Assigned roles
+                                </legend>
+
+                                <div class="d-flex flex-wrap gap-4 mb-3">
+                                    <div class="form-check">
+                                        @if (user.IsCurrentUser)
+                                        {
+                                            <input type="hidden"
+                                                   name="IsAdmin"
+                                                   value="true" />
+
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   checked
+                                                   disabled />
+                                        }
+                                        else
+                                        {
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   name="IsAdmin"
+                                                   value="true"
+                                                   id="admin-@user.Id"
+                                                   checked="@user.IsAdmin" />
+                                        }
+
+                                        <label class="form-check-label"
+                                               for="admin-@user.Id">
+                                            Admin
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="IsManager"
+                                               value="true"
+                                               id="manager-@user.Id"
+                                               checked="@user.IsManager" />
+
+                                        <label class="form-check-label"
+                                               for="manager-@user.Id">
+                                            Manager
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="IsFinance"
+                                               value="true"
+                                               id="finance-@user.Id"
+                                               checked="@user.IsFinance" />
+
+                                        <label class="form-check-label"
+                                               for="finance-@user.Id">
+                                            Finance
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button type="submit"
+                                        class="btn btn-sm btn-primary">
+                                    Save roles
+                                </button>
+                            </fieldset>
+                        </form>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-4" aria-label="User pages">
+            <ul class="pagination">
+                 @for (var pageNumber = 1;
+      pageNumber <= Model.TotalPages;
+      pageNumber++)
+{
+    <li class="page-item @(pageNumber == Model.PageNumber
+        ? "active"
+        : "")">
+
+        <a class="page-link"
+           asp-action="Users"
+           asp-route-search="@Model.Search"
+           asp-route-page="@pageNumber">
+            @pageNumber
+        </a>
+    </li>
+}
+            </ul>
+        </nav>
+    }
+}

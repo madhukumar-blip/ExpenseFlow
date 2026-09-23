@@ -3,10 +3,51 @@
 public sealed class ExpenseFinanceService
 {
     private readonly IExpenseStore _store;
+    private readonly IReceiptStorage _receiptStorage;
 
-    public ExpenseFinanceService(IExpenseStore store)
+    public ExpenseFinanceService(
+     IExpenseStore store,
+     IReceiptStorage receiptStorage)
     {
         _store = store;
+        _receiptStorage = receiptStorage;
+    }
+
+    public async Task<ReceiptDownload?> GetReceiptAsync(
+    Guid expenseId,
+    string financeUserId,
+    CancellationToken cancellationToken)
+    {
+        ValidateUser(financeUserId);
+
+        if (expenseId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var expense = await _store.FindForFinanceReceiptAsync(
+            expenseId,
+            financeUserId,
+            cancellationToken);
+
+        if (expense is null ||
+            string.IsNullOrWhiteSpace(expense.ReceiptStoredFileName) ||
+            string.IsNullOrWhiteSpace(expense.ReceiptOriginalFileName) ||
+            string.IsNullOrWhiteSpace(expense.ReceiptContentType))
+        {
+            return null;
+        }
+
+        var stream = await _receiptStorage.OpenReadAsync(
+            expense.ReceiptStoredFileName,
+            cancellationToken);
+
+        return stream is null
+            ? null
+            : new ReceiptDownload(
+                stream,
+                expense.ReceiptOriginalFileName,
+                expense.ReceiptContentType);
     }
 
     public Task<IReadOnlyList<FinanceExpenseItem>> ListApprovedAsync(

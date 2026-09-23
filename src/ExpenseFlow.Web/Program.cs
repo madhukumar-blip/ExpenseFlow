@@ -2,8 +2,9 @@ using ExpenseFlow.Application.Expenses;
 using ExpenseFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using ExpenseFlow.Web.Setup; 
+using ExpenseFlow.Web.Setup;
 using ExpenseFlow.Infrastructure.Storage;
+using ExpenseFlow.Application.Administration;  
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,11 +21,18 @@ var receiptStoragePath = Path.Combine(
     "App_Data",
     "receipts");
 
-builder.Services.AddSingleton<IReceiptStorage>(
-    new LocalReceiptStorage(receiptStoragePath));
+builder.Services.AddScoped<IAdministrationAuditWriter, AdministrationAuditWriter>();
+
+builder.Services.AddSingleton<IReceiptStorage>(new LocalReceiptStorage(receiptStoragePath));
 
 builder.Services.AddDbContext<ExpenseFlowDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.Configure<SecurityStampValidatorOptions>(
+    options =>
+    {
+        options.ValidationInterval =
+            TimeSpan.FromMinutes(1);
+    });
 
 builder.Services
     .AddDefaultIdentity<IdentityUser>(options =>

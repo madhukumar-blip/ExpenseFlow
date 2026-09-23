@@ -22,8 +22,46 @@ public sealed class FinanceController : Controller
             "The authenticated user has no identifier.");
 
     [HttpGet]
-    public async Task<IActionResult> Index(
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> PreviewReceipt(Guid id, CancellationToken cancellationToken)
+    {
+        var receipt = await _financeService.GetReceiptAsync(
+            id,
+            CurrentUserId,
+            cancellationToken);
+
+        if (receipt is null)
+        {
+            return NotFound();
+        }
+
+        return File(
+            receipt.Content,
+            receipt.ContentType,
+            enableRangeProcessing: true);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadReceipt(Guid id, CancellationToken cancellationToken)
+    {
+        var receipt = await _financeService.GetReceiptAsync(
+            id,
+            CurrentUserId,
+            cancellationToken);
+
+        if (receipt is null)
+        {
+            return NotFound();
+        }
+
+        return File(
+            receipt.Content,
+            receipt.ContentType,
+            receipt.OriginalFileName,
+            enableRangeProcessing: true);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         return View(await _financeService.ListApprovedAsync(
             CurrentUserId,
@@ -32,9 +70,7 @@ public sealed class FinanceController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Reimburse(
-        ReimburseExpenseViewModel model,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Reimburse(ReimburseExpenseViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid || model.Id == Guid.Empty)
         {

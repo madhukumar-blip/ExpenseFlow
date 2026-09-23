@@ -15,10 +15,11 @@ public static class DevelopmentRoleSeeder
             services.GetRequiredService<RoleManager<IdentityRole>>();
 
         var assignments = new[]
-        {
-            (Role: "Manager", Key: "Bootstrap:ManagerEmail"),
-            (Role: "Finance", Key: "Bootstrap:FinanceEmail")
-        };
+ {
+    (Role: "Admin", Key: "Bootstrap:AdminEmail"),
+    (Role: "Manager", Key: "Bootstrap:ManagerEmail"),
+    (Role: "Finance", Key: "Bootstrap:FinanceEmail")
+};
 
         foreach (var assignment in assignments)
         {

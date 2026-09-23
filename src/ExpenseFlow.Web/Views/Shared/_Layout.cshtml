@@ -89,6 +89,19 @@
                                     </a>
                                 </li>
                             }
+                            @if (User.IsInRole("Admin"))
+{
+    <li class="nav-item">
+        <a class="nav-link @(currentController == "Admin"
+            ? "active"
+            : "")"
+           asp-area=""
+           asp-controller="Admin"
+           asp-action="Users">
+            Administration
+        </a>
+    </li>
+}
                         }
                     </ul>
 
